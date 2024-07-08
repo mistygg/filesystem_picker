@@ -816,6 +816,31 @@ class FilesystemPickerState extends State<FilesystemPicker> {
                     widget.contextActions.first, context, directory!)
                 : null,
           ),
+        )
+      ];
+    } else if (widget.contextActions.length == 2) {
+      return [
+        IconTheme.merge(
+          data: buttonTheme.getIconTheme(context),
+          child: IconButton(
+            icon: widget.contextActions.first.icon,
+            tooltip: widget.contextActions.first.text,
+            onPressed: !hasMessage
+                ? () => _callAction(
+                    widget.contextActions.first, context, directory!)
+                : null,
+          ),
+        ),
+        IconTheme.merge(
+          data: buttonTheme.getIconTheme(context),
+          child: IconButton(
+            icon: widget.contextActions.last.icon,
+            tooltip: widget.contextActions.last.text,
+            onPressed: !hasMessage
+                ? () =>
+                    _callAction(widget.contextActions.last, context, directory!)
+                : null,
+          ),
         ),
       ];
     } else {
