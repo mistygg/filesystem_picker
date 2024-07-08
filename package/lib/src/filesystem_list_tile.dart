@@ -99,25 +99,92 @@ class FilesystemListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveTheme = theme ?? FilesystemPickerFileListThemeData();
-    final isFile = (fsType == FilesystemType.file) && (item is File);
-    final style = !isFile
-        ? effectiveTheme.getFolderTextStyle(context)
-        : effectiveTheme.getFileTextStyle(context);
+    return FutureBuilder(
+      future: _dirContents,
+      builder: (BuildContext context,
+          AsyncSnapshot<List<FileSystemEntity>> snapshot) {
+        final effectiveTheme =
+            widget.theme ?? FilesystemPickerFileListThemeData();
 
-    return ListTile(
-      key: Key(item.absolute.path),
-      leading: _leading(context, effectiveTheme, isFile),
-      trailing: _trailing(context, effectiveTheme, isFile),
-      title: Text(path.basename(item.path),
-          style: style,
-          textScaleFactor: effectiveTheme.getTextScaleFactor(context, isFile)),
-      onTap: (item is Directory)
-          ? () => onChange(item as Directory)
-          : ((fsType == FilesystemType.file &&
-                  fileTileSelectMode == FileTileSelectMode.wholeTile)
-              ? () => onSelect(item.absolute.path)
-              : null),
+        if (snapshot.connectionState == ConnectionState.done) {
+          if (snapshot.hasError) {
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Center(
+                child: Text('Error loading file list: ${snapshot.error}',
+                    textScaleFactor:
+                        effectiveTheme.getTextScaleFactor(context, true)),
+              ),
+            );
+          } else if (snapshot.hasData) {
+            bool isAllImage = true;
+            snapshot.data?.forEach((item) {
+              final isImage = item.absolute.path.endsWith(".png") ||
+                  item.absolute.path.endsWith(".jpg");
+              isAllImage &= isImage;
+            });
+            if (isAllImage) {
+              return GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3, //每行三列
+                  childAspectRatio: 0.8, //显示区域宽高相等
+                ),
+                itemCount: snapshot.data!.length +
+                    (widget.showGoUp ? (widget.isRoot ? 0 : 1) : 0),
+                itemBuilder: (BuildContext context, int index) {
+                  if (widget.showGoUp && !widget.isRoot && index == 0) {
+                    return _upNavigation(context, effectiveTheme);
+                  }
+
+                  final item = snapshot.data![
+                      index - (widget.showGoUp ? (widget.isRoot ? 0 : 1) : 0)];
+                  return FilesystemListTile(
+                    fsType: widget.fsType,
+                    item: item,
+                    folderIconColor: widget.folderIconColor,
+                    onChange: widget.onChange,
+                    onSelect: widget.onSelect,
+                    fileTileSelectMode: widget.fileTileSelectMode,
+                    theme: effectiveTheme,
+                    caseSensitiveFileExtensionComparison:
+                        widget.caseSensitiveFileExtensionComparison,
+                  );
+                },
+              );
+            } else {
+              return ListView.builder(
+                controller: widget.scrollController,
+                shrinkWrap: true,
+                itemCount: snapshot.data!.length +
+                    (widget.showGoUp ? (widget.isRoot ? 0 : 1) : 0),
+                itemBuilder: (BuildContext context, int index) {
+                  if (widget.showGoUp && !widget.isRoot && index == 0) {
+                    return _upNavigation(context, effectiveTheme);
+                  }
+
+                  final item = snapshot.data![
+                      index - (widget.showGoUp ? (widget.isRoot ? 0 : 1) : 0)];
+                  return FilesystemListTile(
+                    fsType: widget.fsType,
+                    item: item,
+                    folderIconColor: widget.folderIconColor,
+                    onChange: widget.onChange,
+                    onSelect: widget.onSelect,
+                    fileTileSelectMode: widget.fileTileSelectMode,
+                    theme: effectiveTheme,
+                    caseSensitiveFileExtensionComparison:
+                        widget.caseSensitiveFileExtensionComparison,
+                  );
+                },
+              );
+            }
+          } else {
+            return const SizedBox();
+          }
+        } else {
+          return FilesystemProgressIndicator(theme: effectiveTheme);
+        }
+      },
     );
   }
 }
